@@ -1,0 +1,7 @@
+name = "clark"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "public"
+
+[[r2_buckets]]
+binding = "BOOK_CACHE"
+bucket_name = "clark-book-cache"

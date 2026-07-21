@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "clark",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "wrangler", "pages", "dev", "public", "--port", "8808"],
+      "port": 8808,
+      "autoPort": false,
+      "cwd": "/Users/brandonhull/Projects/clark"
+    }
+  ]
+}

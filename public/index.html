@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Clark</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="apple-touch-icon" href="/favicon.svg" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<div id="pin-screen" class="pin-screen">
+  <form id="pin-form">
+    <h1>Clark</h1>
+    <input id="pin-input" type="password" placeholder="PIN" autocomplete="off" />
+    <button type="submit">Unlock</button>
+    <p id="pin-error" class="error"></p>
+  </form>
+</div>
+
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="topbar-row">
+      <h1>Clark</h1>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="shelf">Shelf</button>
+      <button class="tab-btn" data-tab="reading">Reading</button>
+      <button class="tab-btn" data-tab="highlights">Highlights</button>
+    </nav>
+  </header>
+
+  <section id="tab-shelf" class="tab-panel active">
+    <div class="controls">
+      <input id="search-input" type="search" placeholder="Search Project Gutenberg..." class="search-box" />
+    </div>
+    <div id="search-results" class="list"></div>
+
+    <div id="currently-reading-section" class="shelf-section hidden">
+      <h2>Currently Reading</h2>
+      <div id="currently-reading-list" class="list"></div>
+    </div>
+
+    <div id="shelf-section" class="shelf-section">
+      <h2>My Shelf</h2>
+      <div id="shelf-list" class="list"></div>
+    </div>
+  </section>
+
+  <section id="tab-reading" class="tab-panel">
+    <div id="reader-empty" class="empty-state">Pick a book from your shelf to start reading.</div>
+    <div id="reader-view" class="reader-view hidden">
+      <div class="reader-header">
+        <button id="reader-back-btn" class="reader-back-btn">&larr; Shelf</button>
+        <div class="reader-title-block">
+          <div id="reader-title" class="reader-title"></div>
+          <div id="reader-author" class="reader-author"></div>
+        </div>
+        <div id="render-mode-control" class="render-mode-control hidden">
+          <button id="render-mode-btn" class="render-mode-btn"></button>
+        </div>
+      </div>
+      <div id="reader-content" class="reader-content"></div>
+    </div>
+  </section>
+
+  <section id="tab-highlights" class="tab-panel">
+    <div class="controls">
+      <input id="highlights-search-input" type="search" placeholder="Search highlights..." class="search-box" />
+      <select id="highlights-book-filter"><option value="">All books</option></select>
+    </div>
+    <div id="highlights-list" class="list"></div>
+  </section>
+</div>
+
+<script src="/vendor/dompurify.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

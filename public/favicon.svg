@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#242938"/><stop offset="100%" stop-color="#0a0a0d"/>
+  </linearGradient></defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="url(#bg)"/>
+  <text x="512" y="660" text-anchor="middle" font-family="-apple-system, 'SF Pro Rounded', 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="440" fill="#ffffff">Cl</text>
+</svg>

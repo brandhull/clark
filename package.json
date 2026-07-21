@@ -1,0 +1,13 @@
+{
+  "name": "clark",
+  "version": "1.0.0",
+  "description": "Project Gutenberg e-reader with Baserow-backed highlights and comments",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --port 8808",
+    "deploy": "wrangler pages deploy public --project-name clark"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
