@@ -31,16 +31,29 @@ function stripPlaintextBoilerplate(raw) {
 // plain http:// hop before landing on https:// (e.g. /ebooks/84.html.images
 // -> http://.../cache/epub/84/pg84-images.html -> https://...). Cloudflare's
 // production fetch() is stricter about following that downgrade than local
-// dev's Miniflare simulation — same root cause as the Baserow pagination
-// gotcha, so handle it the same way: follow redirects manually, rewriting
-// http -> https at every hop instead of trusting the runtime to do it.
+// dev's Miniflare simulation, so redirects are followed manually here rather
+// than trusting the runtime to do it — same root cause as the Baserow
+// pagination gotcha.
+//
+// On top of that, gutenberg.org's own backends are inconsistent: some
+// requests come back with a Location header that mashes two URLs together
+// with a comma (e.g. "http://host/https, http://host/real/path") — a bug on
+// their end, not something curl or a browser necessarily reproduces the same
+// way each time depending on which backend serves the request. Extract the
+// last absolute http(s) URL found in the header rather than trusting the
+// whole value.
+function extractRedirectTarget(locationHeader, baseUrl) {
+  const matches = locationHeader.match(/https?:\/\/[^\s,]+/g);
+  const target = matches && matches.length ? matches[matches.length - 1] : locationHeader;
+  return new URL(target, baseUrl);
+}
+
 async function fetchFollowingRedirects(url, maxHops = 5) {
   let current = url;
   for (let i = 0; i < maxHops; i++) {
     const res = await fetch(current, { redirect: 'manual' });
-    console.log('[clark debug] hop', i, current, '->', res.status, res.headers.get('location'));
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
-      const next = new URL(res.headers.get('location'), current);
+      const next = extractRedirectTarget(res.headers.get('location'), current);
       if (next.protocol === 'http:') next.protocol = 'https:';
       current = next.toString();
       continue;
