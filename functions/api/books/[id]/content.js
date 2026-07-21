@@ -27,6 +27,28 @@ function stripPlaintextBoilerplate(raw) {
 // class="pg-boilerplate"> and <footer id="pg-footer" class="pg-boilerplate">,
 // so the client's block-splitter skips elements with that class instead.
 
+// gutenberg.org's own redirect chain for some format URLs dips through a
+// plain http:// hop before landing on https:// (e.g. /ebooks/84.html.images
+// -> http://.../cache/epub/84/pg84-images.html -> https://...). Cloudflare's
+// production fetch() is stricter about following that downgrade than local
+// dev's Miniflare simulation — same root cause as the Baserow pagination
+// gotcha, so handle it the same way: follow redirects manually, rewriting
+// http -> https at every hop instead of trusting the runtime to do it.
+async function fetchFollowingRedirects(url, maxHops = 5) {
+  let current = url;
+  for (let i = 0; i < maxHops; i++) {
+    const res = await fetch(current, { redirect: 'manual' });
+    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      const next = new URL(res.headers.get('location'), current);
+      if (next.protocol === 'http:') next.protocol = 'https:';
+      current = next.toString();
+      continue;
+    }
+    return res;
+  }
+  throw new Error(`Too many redirects fetching ${url}`);
+}
+
 async function fetchAndClean(gutenbergId) {
   const detailRes = await fetch(GUTENDEX_BOOK_URL(gutenbergId));
   if (!detailRes.ok) return { error: json({ error: 'gutendex', status: detailRes.status }, { status: 502 }) };
@@ -35,7 +57,7 @@ async function fetchAndClean(gutenbergId) {
   const format = pickFormat(detail.formats);
   if (!format) return { error: json({ error: 'no-readable-format' }, { status: 422 }) };
 
-  const sourceRes = await fetch(format.url);
+  const sourceRes = await fetchFollowingRedirects(format.url);
   if (!sourceRes.ok) return { error: json({ error: 'gutenberg-fetch', status: sourceRes.status }, { status: 502 }) };
   let raw = await sourceRes.text();
 
