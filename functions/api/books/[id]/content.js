@@ -38,6 +38,7 @@ async function fetchFollowingRedirects(url, maxHops = 5) {
   let current = url;
   for (let i = 0; i < maxHops; i++) {
     const res = await fetch(current, { redirect: 'manual' });
+    console.log('[clark debug] hop', i, current, '->', res.status, res.headers.get('location'));
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
       const next = new URL(res.headers.get('location'), current);
       if (next.protocol === 'http:') next.protocol = 'https:';
