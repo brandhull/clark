@@ -293,9 +293,9 @@
     }
   }
 
-  // Closes the book out entirely — a returned book shows up nowhere in the
-  // app (Shelf, Read, or Highlights), though its row and any highlights are
-  // left intact in Baserow rather than deleted.
+  // Closes the book out — hidden from Shelf/Reading/Read, but its row and
+  // any highlights are left intact in Baserow (not deleted), so existing
+  // highlights still show up grouped under it in the Highlights tab.
   async function returnBook(book) {
     try {
       const row = await api(`/api/books/${book.id}`, {
@@ -480,11 +480,7 @@
     const searchTerm = ($('#highlights-search-input').value || '').trim().toLowerCase();
     const bookFilter = $('#highlights-book-filter').value;
 
-    // A returned book "wouldn't appear anywhere" — including its highlights.
-    let highlights = state.highlights.filter((h) => {
-      const book = state.books.find((b) => b.id === h.book[0]);
-      return !book || book.status !== 'returned';
-    });
+    let highlights = state.highlights;
     if (bookFilter) highlights = highlights.filter((h) => String(h.book[0]) === bookFilter);
     if (searchTerm) {
       highlights = highlights.filter(
@@ -568,7 +564,7 @@
     select.innerHTML = '<option value="">All books</option>';
     const bookIdsWithHighlights = new Set(state.highlights.map((h) => h.book[0]));
     state.books
-      .filter((b) => bookIdsWithHighlights.has(b.id) && b.status !== 'returned')
+      .filter((b) => bookIdsWithHighlights.has(b.id))
       .forEach((b) => {
         const opt = document.createElement('option');
         opt.value = String(b.id);
