@@ -112,6 +112,7 @@
       state.books = [];
     }
     renderShelf();
+    renderReadList();
     renderSearchResults(); // refresh action buttons against the up-to-date shelf
   }
 
@@ -122,12 +123,13 @@
   function bookStatusLabel(book) {
     if (book.status === 'reading') return 'Reading';
     if (book.status === 'finished') return 'Finished';
+    if (book.status === 'returned') return 'Returned';
     return 'On shelf';
   }
 
   function renderShelf() {
     const reading = state.books.filter((b) => b.status === 'reading');
-    const others = state.books.filter((b) => b.status !== 'reading');
+    const available = state.books.filter((b) => b.status === 'available');
 
     const readingSection = $('#currently-reading-section');
     const readingList = $('#currently-reading-list');
@@ -141,11 +143,53 @@
 
     const shelfList = $('#shelf-list');
     shelfList.innerHTML = '';
-    if (others.length === 0) {
+    if (available.length === 0) {
       shelfList.innerHTML = '<div class="empty-state">Search above to add your first book.</div>';
     } else {
-      others.forEach((book) => shelfList.appendChild(shelfCard(book)));
+      available.forEach((book) => shelfList.appendChild(shelfCard(book)));
     }
+  }
+
+  // Finished books — accessible read-only from the Read tab. Returned books
+  // never render here, or anywhere else in the app.
+  function renderReadList() {
+    const finished = state.books.filter((b) => b.status === 'finished');
+    const list = $('#read-list');
+    list.innerHTML = '';
+    if (finished.length === 0) {
+      list.innerHTML = '<div class="empty-state">Books you finish will show up here.</div>';
+    } else {
+      finished.forEach((book) => list.appendChild(readCard(book)));
+    }
+  }
+
+  function readCard(book) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const titleBlock = document.createElement('div');
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = book.title;
+    const author = document.createElement('div');
+    author.className = 'card-author';
+    author.textContent = book.author;
+    titleBlock.appendChild(title);
+    titleBlock.appendChild(author);
+    header.appendChild(titleBlock);
+    card.appendChild(header);
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const openBtn = document.createElement('button');
+    openBtn.textContent = 'Open';
+    openBtn.addEventListener('click', () => openReader(book));
+    actions.appendChild(openBtn);
+    card.appendChild(actions);
+
+    return card;
   }
 
   function shelfCard(book) {
@@ -191,6 +235,11 @@
       finishBtn.textContent = 'Mark Finished';
       finishBtn.addEventListener('click', () => finishBook(book));
       actions.appendChild(finishBtn);
+
+      const returnBtn = document.createElement('button');
+      returnBtn.textContent = 'Return';
+      returnBtn.addEventListener('click', () => returnBook(book));
+      actions.appendChild(returnBtn);
     }
 
     if (actions.children.length > 0) card.appendChild(actions);
@@ -238,6 +287,25 @@
       });
       Object.assign(book, row);
       renderShelf();
+      renderReadList();
+    } catch (e) {
+      alert('Could not update status — check connection.');
+    }
+  }
+
+  // Closes the book out entirely — a returned book shows up nowhere in the
+  // app (Shelf, Read, or Highlights), though its row and any highlights are
+  // left intact in Baserow rather than deleted.
+  async function returnBook(book) {
+    try {
+      const row = await api(`/api/books/${book.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'returned' }),
+      });
+      Object.assign(book, row);
+      renderShelf();
+      renderReadList();
+      if (state.activeTab === 'highlights') renderHighlightsList();
     } catch (e) {
       alert('Could not update status — check connection.');
     }
@@ -412,7 +480,11 @@
     const searchTerm = ($('#highlights-search-input').value || '').trim().toLowerCase();
     const bookFilter = $('#highlights-book-filter').value;
 
-    let highlights = state.highlights;
+    // A returned book "wouldn't appear anywhere" — including its highlights.
+    let highlights = state.highlights.filter((h) => {
+      const book = state.books.find((b) => b.id === h.book[0]);
+      return !book || book.status !== 'returned';
+    });
     if (bookFilter) highlights = highlights.filter((h) => String(h.book[0]) === bookFilter);
     if (searchTerm) {
       highlights = highlights.filter(
@@ -496,7 +568,7 @@
     select.innerHTML = '<option value="">All books</option>';
     const bookIdsWithHighlights = new Set(state.highlights.map((h) => h.book[0]));
     state.books
-      .filter((b) => bookIdsWithHighlights.has(b.id))
+      .filter((b) => bookIdsWithHighlights.has(b.id) && b.status !== 'returned')
       .forEach((b) => {
         const opt = document.createElement('option');
         opt.value = String(b.id);
