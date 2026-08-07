@@ -232,6 +232,7 @@ body {
 }
 
 .reader-content {
+  font-family: ui-serif, Georgia, 'Iowan Old Style', 'Times New Roman', serif;
   font-size: 1.05rem;
   line-height: 1.65;
 }
