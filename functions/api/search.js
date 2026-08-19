@@ -55,6 +55,7 @@ export async function onRequestGet({ request, env }) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q');
   const topic = searchParams.get('topic');
+  console.log('[clark debug] request.url=', request.url, 'q=', JSON.stringify(q), 'topic=', JSON.stringify(topic));
   if (!q && !topic) return json({ results: [] });
 
   if (topic) {
