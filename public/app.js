@@ -8,6 +8,7 @@
     highlights: [],
     activeTab: 'shelf',
     searchResults: [],
+    browseRows: [],
   };
 
   async function api(path, options = {}) {
@@ -261,6 +262,7 @@
       state.books.push(row);
       renderShelf();
       renderSearchResults();
+      renderBrowseSection();
     } catch (e) {
       alert('Could not add to shelf — check connection.');
     }
@@ -866,6 +868,7 @@
     input.addEventListener('input', () => {
       clearTimeout(debounceTimer);
       const q = input.value.trim();
+      $('#browse-section').classList.toggle('hidden', !!q);
       if (!q) {
         state.searchResults = [];
         renderSearchResults();
@@ -883,6 +886,80 @@
     });
   }
 
+  // ---------- Browse (empty-search default view) ----------
+
+  // Canonical Gutenberg bookshelf names — must match exactly for Gutendex's
+  // topic filter (it's a substring match against subjects/bookshelves, not
+  // fuzzy). label is what's shown; topic is what's sent to the API.
+  const BROWSE_CATEGORIES = [
+    { label: 'Art', topic: 'Art' },
+    { label: 'Biographies', topic: 'Biographies' },
+    { label: 'Business/Management', topic: 'Business/Management' },
+    { label: 'Classics of Literature', topic: 'Classics of Literature' },
+    { label: 'Essays, Letters, & Speeches', topic: 'Essays, Letters & Speeches' },
+    { label: 'Journals', topic: 'Journals' },
+    { label: 'Language & Communication', topic: 'Language & Communication' },
+    { label: 'Philosophy & Ethics', topic: 'Philosophy & Ethics' },
+    { label: 'Plays/Films/Drama', topic: 'Plays/Films/Dramas' },
+    { label: 'Poetry', topic: 'Poetry' },
+    { label: 'Religion/Spirituality', topic: 'Religion/Spirituality' },
+    { label: 'Short Stories', topic: 'Short Stories' },
+    { label: 'Teaching & Education', topic: 'Teaching & Education' },
+  ];
+  const BROWSE_ROWS_PER_VISIT = 4;
+  const BROWSE_BOOKS_PER_ROW = 5;
+  const BROWSE_ROTATION_KEY = 'clark_browse_rotation';
+
+  // Cycles through all 13 categories before repeating, rather than picking
+  // randomly each time (which could leave one out for weeks by bad luck).
+  function nextBrowseCategories() {
+    const start = Number(localStorage.getItem(BROWSE_ROTATION_KEY)) || 0;
+    const picked = [];
+    for (let i = 0; i < BROWSE_ROWS_PER_VISIT; i++) {
+      picked.push(BROWSE_CATEGORIES[(start + i) % BROWSE_CATEGORIES.length]);
+    }
+    localStorage.setItem(BROWSE_ROTATION_KEY, String((start + BROWSE_ROWS_PER_VISIT) % BROWSE_CATEGORIES.length));
+    return picked;
+  }
+
+  // Sequential, not Promise.all — four requests fired at once turned out to
+  // be dramatically slower in practice than the same four run one at a time,
+  // and this also lets rows appear progressively instead of one long pause.
+  async function loadBrowseSection() {
+    const categories = nextBrowseCategories();
+    state.browseRows = [];
+    for (const cat of categories) {
+      try {
+        const data = await api(`/api/search?topic=${encodeURIComponent(cat.topic)}`);
+        const results = data.results.slice(0, BROWSE_BOOKS_PER_ROW);
+        if (results.length > 0) state.browseRows.push({ label: cat.label, results });
+      } catch (e) {
+        // skip this category on failure, don't block the rest
+      }
+      renderBrowseSection();
+    }
+  }
+
+  function renderBrowseSection() {
+    const container = $('#browse-section');
+    container.innerHTML = '';
+    state.browseRows.forEach((row) => {
+      const section = document.createElement('div');
+      section.className = 'shelf-section';
+      const heading = document.createElement('h2');
+      heading.textContent = row.label;
+      section.appendChild(heading);
+      const list = document.createElement('div');
+      list.className = 'list';
+      row.results.forEach((result) => {
+        const existing = findBook(result.gutenberg_id);
+        list.appendChild(searchResultCard(result, existing));
+      });
+      section.appendChild(list);
+      container.appendChild(section);
+    });
+  }
+
   // ---------- Boot ----------
 
   async function start() {
@@ -892,6 +969,7 @@
     initHighlightsTab();
     await Promise.all([loadBooks(), loadHighlights()]);
     populateHighlightsBookFilter();
+    loadBrowseSection();
   }
 
   initPinGate();
